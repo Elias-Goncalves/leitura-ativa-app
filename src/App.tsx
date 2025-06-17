@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
+import { FirebaseProvider } from "./hooks/useFirebase";
 import AuthScreen from "./components/AuthScreen";
 import Dashboard from "./components/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -27,11 +29,15 @@ function AppContent() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ThemeProvider>
+        <FirebaseProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <AppContent />
+          </AuthProvider>
+        </FirebaseProvider>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
