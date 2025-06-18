@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 
@@ -8,14 +7,17 @@ export interface BookSuggestion {
   reason: string;
 }
 
+const GEMINI_API_KEY = 'AIzaSyDLtA2PIXO3ohdX6NiJwf7dN0Y6GJ3qB1M';
+
 export function useGemini() {
   const [loading, setLoading] = useState(false);
 
   const getApiKey = () => {
-    return localStorage.getItem('gemini_api_key');
+    return GEMINI_API_KEY;
   };
 
   const setApiKey = (key: string) => {
+    // API key is now hardcoded, but we keep this function for compatibility
     localStorage.setItem('gemini_api_key', key);
   };
 
