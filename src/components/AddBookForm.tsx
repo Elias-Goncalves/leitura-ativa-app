@@ -1,11 +1,13 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Key, Sparkles } from 'lucide-react';
 import { useBooks } from '../hooks/useBooks';
+import { useGemini } from '../hooks/useGemini';
+import GeminiApiConfig from './GeminiApiConfig';
 
 interface AddBookFormProps {
   onClose: () => void;
@@ -22,7 +24,28 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
     coverImageUrl: ''
   });
 
+  const [showApiConfig, setShowApiConfig] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const { addBook } = useBooks();
+  const { autocompleteBook, getApiKey, loading } = useGemini();
+
+  useEffect(() => {
+    const searchBooks = async () => {
+      if (formData.name.length >= 3) {
+        const results = await autocompleteBook(formData.name);
+        setSuggestions(results);
+        setShowSuggestions(results.length > 0);
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    };
+
+    const timeoutId = setTimeout(searchBooks, 300);
+    return () => clearTimeout(timeoutId);
+  }, [formData.name]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +71,15 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const selectSuggestion = (suggestion: string) => {
+    setFormData(prev => ({ ...prev, name: suggestion }));
+    setShowSuggestions(false);
+  };
+
+  if (showApiConfig) {
+    return <GeminiApiConfig onClose={() => setShowApiConfig(false)} />;
+  }
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -55,20 +87,53 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
           <Plus className="mr-2" size={20} />
           Adicionar Novo Livro
         </CardTitle>
-        <Button variant="ghost" size="sm" onClick={onClose}>
-          <X size={20} />
-        </Button>
+        <div className="flex items-center space-x-2">
+          {!getApiKey() && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowApiConfig(true)}
+              title="Configurar API do Gemini para autocompletar"
+            >
+              <Key size={16} />
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X size={20} />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="relative">
             <Label htmlFor="name">Nome do Livro *</Label>
-            <Input
-              id="name"
-              value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                required
+                className={getApiKey() ? "pr-8" : ""}
+              />
+              {getApiKey() && loading && (
+                <Sparkles className="absolute right-2 top-1/2 transform -translate-y-1/2 animate-pulse text-blue-500" size={16} />
+              )}
+            </div>
+            
+            {showSuggestions && (
+              <div className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md mt-1 shadow-lg">
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md last:rounded-b-md"
+                    onClick={() => selectSuggestion(suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           
           <div>
