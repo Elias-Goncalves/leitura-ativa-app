@@ -1,23 +1,21 @@
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-
-// SUBSTITUA ESTAS CONFIGURAÇÕES PELAS SUAS DO CONSOLE DO FIREBASE
-// Vá em: Console Firebase > Configurações do Projeto > Seus aplicativos > Configuração
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  apiKey: "AIzaSyBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", // Substitua pela sua API Key
-  authDomain: "seu-projeto.firebaseapp.com",        // Substitua pelo seu Auth Domain
-  projectId: "seu-projeto-id",                      // Substitua pelo seu Project ID
-  storageBucket: "seu-projeto.appspot.com",         // Substitua pelo seu Storage Bucket
-  messagingSenderId: "123456789012",                // Substitua pelo seu Messaging Sender ID
-  appId: "1:123456789012:web:abcdefghijk123456"     // Substitua pelo seu App ID
+  apiKey: "AIzaSyBa3Up5rAqf92NltQSp9Q9d7X9wk4hGiCM",
+  authDomain: "leitura-de-livros.firebaseapp.com",
+  projectId: "leitura-de-livros",
+  storageBucket: "leitura-de-livros.firebasestorage.app",
+  messagingSenderId: "74013935926",
+  appId: "1:74013935926:web:418f1a83fb17b49c0f8b97",
+  measurementId: "G-TH3W3JMB37"
 };
 
-// Inicializar Firebase
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-
-// Inicializar Auth e Firestore
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export default app;
+const analytics = getAnalytics(app);
