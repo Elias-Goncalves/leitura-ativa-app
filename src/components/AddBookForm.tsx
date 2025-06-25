@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,12 +27,19 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
   const [showApiConfig, setShowApiConfig] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const isSelectingSuggestion = useRef(false);
 
   const { addBook } = useBooks();
   const { autocompleteBook, getApiKey, loading } = useGemini();
 
   useEffect(() => {
     const searchBooks = async () => {
+      // Se estamos selecionando uma sugestão, não fazer nova pesquisa
+      if (isSelectingSuggestion.current) {
+        isSelectingSuggestion.current = false;
+        return;
+      }
+
       if (formData.name.length >= 3) {
         const results = await autocompleteBook(formData.name);
         setSuggestions(results);
@@ -72,6 +79,7 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
   };
 
   const selectSuggestion = (suggestion: string) => {
+    isSelectingSuggestion.current = true;
     setFormData(prev => ({ ...prev, name: suggestion }));
     setShowSuggestions(false);
   };
