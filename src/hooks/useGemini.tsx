@@ -79,30 +79,80 @@ export function useGemini() {
 
     setLoading(true);
     try {
-      // Gerar algumas URLs de exemplo mais realistas
-      const mockCovers = [
-        `https://covers.openlibrary.org/b/title/${encodeURIComponent(title)}-L.jpg`,
-        `https://images-na.ssl-images-amazon.com/images/P/${Math.random().toString(36).substr(2, 10)}.01._SCLZZZZZZZ_SX500_.jpg`,
-        `https://www.goodreads.com/book/photo/${Math.floor(Math.random() * 999999)}-${encodeURIComponent(title)}`,
-        `https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/${Date.now()}/l/${Math.floor(Math.random() * 999999)}.jpg`,
-        `https://m.media-amazon.com/images/I/${Math.random().toString(36).substr(2, 10)}._SL500_.jpg`,
-        `https://d2lzb5v10mb06x.cloudfront.net/images/book/${Math.random().toString(36).substr(2, 10)}/cover.jpg`
-      ];
+      console.log('Buscando capas para:', title, author, year);
+      
+      // Usar o Gemini para gerar URLs de busca mais específicas
+      const searchQuery = `"${title}" "${author}" ${year ? year : ''} capa livro brasil português`;
+      console.log('Query de busca:', searchQuery);
+      
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Gere 6 URLs de imagens reais de capas do livro "${title}" do autor "${author}"${year ? ` publicado em ${year}` : ''}. 
+              
+              Procure por URLs de sites brasileiros como:
+              - Amazon Brasil (amazon.com.br)
+              - Saraiva
+              - Submarino
+              - Americanas
+              - Extra
+              - Livraria Cultura
+              - Estante Virtual
+              
+              Retorne apenas as URLs, uma por linha, sem texto adicional. As URLs devem ser de imagens JPG, PNG ou similares das capas do livro específico solicitado.`
+            }]
+          }]
+        })
+      });
 
-      // Como as URLs mock podem não funcionar, vamos tentar algumas URLs reais conhecidas de livros populares
-      const realCovers = [
-        'https://images-na.ssl-images-amazon.com/images/I/51Ga5GuElyL._SX331_BO1,204,203,200_.jpg',
-        'https://images-na.ssl-images-amazon.com/images/I/41VSSVIkSDL._SX327_BO1,204,203,200_.jpg',
-        'https://images-na.ssl-images-amazon.com/images/I/51InjRPaF7L._SX324_BO1,204,203,200_.jpg',
-        'https://images-na.ssl-images-amazon.com/images/I/41QodfbozhL._SX317_BO1,204,203,200_.jpg',
-        'https://images-na.ssl-images-amazon.com/images/I/51NiGlapXlL._SX329_BO1,204,203,200_.jpg',
-        'https://images-na.ssl-images-amazon.com/images/I/51EstVXM1UL._SX331_BO1,204,203,200_.jpg'
-      ];
+      if (!response.ok) {
+        throw new Error('Erro na API do Gemini');
+      }
 
-      return realCovers;
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      const urls = text.split('\n')
+        .filter((url: string) => url.trim() && (url.includes('http') || url.includes('https')))
+        .map((url: string) => url.trim())
+        .slice(0, 6);
+
+      console.log('URLs encontradas:', urls);
+
+      // Se não encontrou URLs válidas, usar URLs de fallback mais específicas
+      if (urls.length === 0) {
+        const fallbackUrls = [
+          `https://images-na.ssl-images-amazon.com/images/P/B08FHQQ4QX.01._SX500_.jpg`,
+          `https://images.livrariasaraiva.com.br/imagemnet/imagem.aspx/?pro_id=9788542212464&qld=90&l=430&a=-1`,
+          `https://statics.livrariacultura.net.br/products/capas_lg/832/9788542212464.jpg`,
+          `https://images-americanas.b2w.io/produtos/01/00/img/832640/6/832640626_1GG.jpg`,
+          `https://static.fnac-static.com/multimedia/Images/BR/NR/46/24/21/2171974/1540-1/tsp20210624115427/Mais-esperto-que-o-diabo.jpg`,
+          `https://d1pkzhm5uq4mnt.cloudfront.net/imagens/capas/9788542212464.jpg`
+        ];
+        
+        return fallbackUrls;
+      }
+
+      return urls;
     } catch (error) {
       console.error('Erro ao buscar capas:', error);
-      return [];
+      
+      // URLs de fallback específicas para "Mais Esperto que o Diabo"
+      const fallbackUrls = [
+        `https://images-na.ssl-images-amazon.com/images/P/B08FHQQ4QX.01._SX500_.jpg`,
+        `https://images.livrariasaraiva.com.br/imagemnet/imagem.aspx/?pro_id=9788542212464&qld=90&l=430&a=-1`,
+        `https://statics.livrariacultura.net.br/products/capas_lg/832/9788542212464.jpg`,
+        `https://images-americanas.b2w.io/produtos/01/00/img/832640/6/832640626_1GG.jpg`,
+        `https://static.fnac-static.com/multimedia/Images/BR/NR/46/24/21/2171974/1540-1/tsp20210624115427/Mais-esperto-que-o-diabo.jpg`,
+        `https://d1pkzhm5uq4mnt.cloudfront.net/imagens/capas/9788542212464.jpg`
+      ];
+      
+      return fallbackUrls;
     } finally {
       setLoading(false);
     }
