@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, Check } from 'lucide-react';
+import { Loader2, Check, ImageOff } from 'lucide-react';
 import { useGemini } from '../hooks/useGemini';
 
 interface CoverSelectorProps {
@@ -26,6 +26,7 @@ export default function CoverSelector({
   const [covers, setCovers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCover, setSelectedCover] = useState<string>('');
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const { getBookCovers } = useGemini();
 
   useEffect(() => {
@@ -36,8 +37,10 @@ export default function CoverSelector({
 
   const searchCovers = async () => {
     setLoading(true);
+    setFailedImages(new Set());
     try {
       const results = await getBookCovers(bookTitle, author, year);
+      console.log('Capas encontradas:', results);
       setCovers(results);
     } catch (error) {
       console.error('Erro ao buscar capas:', error);
@@ -52,6 +55,13 @@ export default function CoverSelector({
       onClose();
     }
   };
+
+  const handleImageError = (url: string) => {
+    console.log('Erro ao carregar imagem:', url);
+    setFailedImages(prev => new Set([...prev, url]));
+  };
+
+  const validCovers = covers.filter(cover => !failedImages.has(cover));
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -73,20 +83,25 @@ export default function CoverSelector({
                   key={index}
                   className={`cursor-pointer transition-all ${
                     selectedCover === cover ? 'ring-2 ring-blue-500' : ''
-                  }`}
-                  onClick={() => setSelectedCover(cover)}
+                  } ${failedImages.has(cover) ? 'opacity-50' : ''}`}
+                  onClick={() => !failedImages.has(cover) && setSelectedCover(cover)}
                 >
                   <CardContent className="p-2">
                     <div className="relative">
-                      <img
-                        src={cover}
-                        alt={`Capa ${index + 1}`}
-                        className="w-full h-40 object-cover rounded"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                      {selectedCover === cover && (
+                      {!failedImages.has(cover) ? (
+                        <img
+                          src={cover}
+                          alt={`Capa ${index + 1}`}
+                          className="w-full h-40 object-cover rounded"
+                          onError={() => handleImageError(cover)}
+                          onLoad={() => console.log('Imagem carregada:', cover)}
+                        />
+                      ) : (
+                        <div className="w-full h-40 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                          <ImageOff size={32} className="text-gray-400" />
+                        </div>
+                      )}
+                      {selectedCover === cover && !failedImages.has(cover) && (
                         <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full p-1">
                           <Check size={16} />
                         </div>
@@ -97,9 +112,9 @@ export default function CoverSelector({
               ))}
             </div>
 
-            {covers.length === 0 && !loading && (
+            {validCovers.length === 0 && !loading && (
               <p className="text-center text-gray-500 py-8">
-                Nenhuma capa encontrada. Verifique os dados do livro.
+                Nenhuma capa encontrada ou todas falharam ao carregar. Você pode inserir uma URL manualmente.
               </p>
             )}
 
@@ -109,7 +124,7 @@ export default function CoverSelector({
               </Button>
               <Button 
                 onClick={handleSelectCover}
-                disabled={!selectedCover}
+                disabled={!selectedCover || failedImages.has(selectedCover)}
               >
                 Selecionar Capa
               </Button>
