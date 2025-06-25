@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 
@@ -74,6 +73,45 @@ export function useGemini() {
     }
   };
 
+  const getBookCovers = async (title: string, author: string, year?: string): Promise<string[]> => {
+    const apiKey = getApiKey();
+    if (!apiKey) return [];
+
+    setLoading(true);
+    try {
+      const yearText = year ? ` publicado em ${year}` : '';
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Gere 6 URLs de exemplo de capas de livros para "${title}" de ${author}${yearText}. Retorne apenas as URLs, uma por linha, sem numeração ou formatação adicional. Use URLs realistas como exemplo: https://covers.openlibrary.org/b/isbn/[ISBN]-L.jpg ou https://images-na.ssl-images-amazon.com/images/I/[ID].jpg`
+            }]
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro na API do Gemini');
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      return text.split('\n')
+        .filter((url: string) => url.trim() && url.startsWith('http'))
+        .slice(0, 6);
+    } catch (error) {
+      console.error('Erro ao buscar capas:', error);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getReadingSuggestions = async (bookTitle: string, bookAuthor: string): Promise<BookSuggestion[]> => {
     const apiKey = getApiKey();
     if (!apiKey) return [];
@@ -134,6 +172,7 @@ Mantenha as sugestões concisas e relevantes.`
     getApiKey,
     setApiKey,
     autocompleteBook,
-    getReadingSuggestions
+    getReadingSuggestions,
+    getBookCovers
   };
 }
