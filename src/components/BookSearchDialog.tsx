@@ -4,9 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Search, Loader2, BookOpen, Plus } from 'lucide-react';
+import { Search, Loader2, BookOpen } from 'lucide-react';
 import { useGemini } from '../hooks/useGemini';
-import AddBookForm from './AddBookForm';
+import { useBooks } from '../hooks/useBooks';
+import { toast } from '@/hooks/use-toast';
 
 interface BookSearchDialogProps {
   isOpen: boolean;
@@ -26,9 +27,8 @@ export default function BookSearchDialog({ isOpen, onClose }: BookSearchDialogPr
   const [searchTerm, setSearchTerm] = useState('');
   const [books, setBooks] = useState<BookResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedBook, setSelectedBook] = useState<BookResult | null>(null);
-  const [showAddForm, setShowAddForm] = useState(false);
   const { getApiKey } = useGemini();
+  const { addBook } = useBooks();
 
   const searchBooks = async () => {
     if (!searchTerm.trim()) return;
@@ -87,35 +87,36 @@ export default function BookSearchDialog({ isOpen, onClose }: BookSearchDialogPr
     }
   };
 
-  const handleSelectBook = (book: BookResult) => {
-    setSelectedBook(book);
-    setShowAddForm(true);
-  };
+  const handleSelectBook = async (book: BookResult) => {
+    const today = new Date();
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-  const handleCloseAddForm = () => {
-    setShowAddForm(false);
-    setSelectedBook(null);
-    onClose();
-  };
+    try {
+      await addBook({
+        name: book.title,
+        author: book.author,
+        year: book.year,
+        totalPages: book.pages || 300,
+        startDate: today,
+        targetEndDate: nextMonth,
+        coverImageUrl: book.coverUrl || ''
+      });
 
-  if (showAddForm && selectedBook) {
-    return (
-      <Dialog open={isOpen} onOpenChange={handleCloseAddForm}>
-        <DialogContent className="max-w-md">
-          <AddBookForm 
-            onClose={handleCloseAddForm}
-            prefilledData={{
-              name: selectedBook.title,
-              author: selectedBook.author,
-              year: selectedBook.year?.toString() || '',
-              totalPages: selectedBook.pages?.toString() || '',
-              coverImageUrl: selectedBook.coverUrl || ''
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-    );
-  }
+      toast({
+        title: "Livro adicionado!",
+        description: `"${book.title}" foi adicionado à sua biblioteca.`
+      });
+      
+      onClose();
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar o livro.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -147,7 +148,11 @@ export default function BookSearchDialog({ isOpen, onClose }: BookSearchDialogPr
           {books.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {books.map((book, index) => (
-                <Card key={index} className="cursor-pointer hover:shadow-md transition-shadow">
+                <Card 
+                  key={index} 
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => handleSelectBook(book)}
+                >
                   <CardContent className="p-4">
                     <div className="flex space-x-3">
                       {book.coverUrl ? (
@@ -177,15 +182,6 @@ export default function BookSearchDialog({ isOpen, onClose }: BookSearchDialogPr
                         {book.description && (
                           <p className="text-xs text-gray-500 mt-2 line-clamp-2">{book.description}</p>
                         )}
-                        
-                        <Button
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => handleSelectBook(book)}
-                        >
-                          <Plus size={14} className="mr-1" />
-                          Adicionar
-                        </Button>
                       </div>
                     </div>
                   </CardContent>

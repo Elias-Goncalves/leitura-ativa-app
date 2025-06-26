@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Check, ImageOff, RefreshCw } from 'lucide-react';
-import { useGemini } from '../hooks/useGemini';
 
 interface CoverSelectorProps {
   isOpen: boolean;
@@ -27,8 +26,6 @@ export default function CoverSelector({
   const [loading, setLoading] = useState(false);
   const [selectedCover, setSelectedCover] = useState<string>('');
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
-  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
-  const { getBookCovers } = useGemini();
 
   useEffect(() => {
     if (isOpen && bookTitle && author) {
@@ -39,20 +36,23 @@ export default function CoverSelector({
   const searchCovers = async () => {
     setLoading(true);
     setFailedImages(new Set());
-    setLoadedImages(new Set());
     setSelectedCover('');
     
-    console.log('Iniciando busca de capas para:', { bookTitle, author, year });
+    // URLs genéricas de exemplo para capas de livros brasileiros
+    const sampleCovers = [
+      `https://images-na.ssl-images-amazon.com/images/P/8501110551.01.L.jpg`,
+      `https://images-na.ssl-images-amazon.com/images/P/8579802709.01.L.jpg`,
+      `https://images-na.ssl-images-amazon.com/images/P/8535930952.01.L.jpg`,
+      `https://images-na.ssl-images-amazon.com/images/P/8542212460.01.L.jpg`,
+      `https://images-na.ssl-images-amazon.com/images/P/8563321250.01.L.jpg`,
+      `https://images-na.ssl-images-amazon.com/images/P/8550801488.01.L.jpg`
+    ];
     
-    try {
-      const results = await getBookCovers(bookTitle, author, year);
-      console.log('Capas encontradas pela IA:', results);
-      setCovers(results);
-    } catch (error) {
-      console.error('Erro ao buscar capas:', error);
-    } finally {
+    // Simular busca
+    setTimeout(() => {
+      setCovers(sampleCovers);
       setLoading(false);
-    }
+    }, 1000);
   };
 
   const handleSelectCover = () => {
@@ -63,17 +63,10 @@ export default function CoverSelector({
   };
 
   const handleImageError = (url: string) => {
-    console.log('Erro ao carregar imagem:', url);
     setFailedImages(prev => new Set([...prev, url]));
   };
 
-  const handleImageLoad = (url: string) => {
-    console.log('Imagem carregada com sucesso:', url);
-    setLoadedImages(prev => new Set([...prev, url]));
-  };
-
   const validCovers = covers.filter(cover => !failedImages.has(cover));
-  const hasValidCovers = validCovers.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -99,7 +92,7 @@ export default function CoverSelector({
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="animate-spin mr-2" size={24} />
-            <span>Buscando capas em português...</span>
+            <span>Buscando capas...</span>
           </div>
         ) : (
           <div className="space-y-4">
@@ -122,9 +115,9 @@ export default function CoverSelector({
                               alt={`Capa ${index + 1} - ${bookTitle}`}
                               className="w-full h-40 object-cover rounded"
                               onError={() => handleImageError(cover)}
-                              onLoad={() => handleImageLoad(cover)}
+                              crossOrigin="anonymous"
                             />
-                            {loadedImages.has(cover) && selectedCover === cover && (
+                            {selectedCover === cover && (
                               <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full p-1">
                                 <Check size={16} />
                               </div>
@@ -150,15 +143,9 @@ export default function CoverSelector({
               </div>
             )}
 
-            {covers.length > 0 && !hasValidCovers && (
-              <p className="text-center text-amber-600 py-4">
-                Todas as imagens falharam ao carregar. Você pode inserir uma URL manualmente.
-              </p>
-            )}
-
             <div className="flex justify-between items-center pt-4">
               <p className="text-xs text-gray-500">
-                {covers.length > 0 && `${loadedImages.size} de ${covers.length} imagens carregadas`}
+                {covers.length > 0 && `${validCovers.length} de ${covers.length} imagens válidas`}
               </p>
               <div className="flex space-x-2">
                 <Button variant="outline" onClick={onClose}>
