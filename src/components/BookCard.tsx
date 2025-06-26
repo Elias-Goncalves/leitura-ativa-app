@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { BookOpen, Calendar, Gauge, Bookmark, Award, Plus, Edit3, Trash2 } from 'lucide-react';
+import { BookOpen, Calendar, Gauge, Bookmark, Award, Plus, Edit3, Trash2, Star } from 'lucide-react';
 import { Book, useBooks } from '../hooks/useBooks';
 import { toast } from '@/hooks/use-toast';
 import ReadingSuggestionsDialog from './ReadingSuggestionsDialog';
@@ -41,6 +41,7 @@ export default function BookCard({ book }: BookCardProps) {
   };
 
   const dailyGoal = calculateDailyGoal();
+  const hasCompletedDailyGoal = pagesReadToday >= dailyGoal && dailyGoal > 0;
 
   const handleAddDailyPages = async () => {
     const pages = parseInt(dailyPages);
@@ -78,10 +79,21 @@ export default function BookCard({ book }: BookCardProps) {
     setDailyPages('');
     setShowDailyInput(false);
     
-    toast({
-      title: "Progresso atualizado!",
-      description: `Você leu ${pages} páginas hoje.`
-    });
+    // Verificar se completou a meta diária
+    const newDailyTotal = updatedDailyProgress[todayString];
+    const newDailyGoal = calculateDailyGoal();
+    
+    if (newDailyTotal >= newDailyGoal && newDailyGoal > 0) {
+      toast({
+        title: "🎉 Meta diária concluída!",
+        description: `Parabéns! Você leu ${pages} páginas hoje e completou sua meta.`
+      });
+    } else {
+      toast({
+        title: "Progresso atualizado!",
+        description: `Você leu ${pages} páginas hoje.`
+      });
+    }
   };
 
   const handleUpdateBookmark = async () => {
@@ -189,16 +201,35 @@ export default function BookCard({ book }: BookCardProps) {
         {!isCompleted && (
           <div className="space-y-3">
             <div className="bg-blue-50 dark:bg-blue-900 p-3 rounded-lg">
-              <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
-                Meta diária: {dailyGoal} páginas
-              </p>
-              <p className="text-blue-600 dark:text-blue-300 text-sm">
-                Hoje você leu: {pagesReadToday} páginas
-              </p>
-              {pagesReadToday >= dailyGoal && (
-                <p className="text-green-600 dark:text-green-400 text-sm font-semibold">
-                  🎉 Meta diária concluída!
-                </p>
+              {hasCompletedDailyGoal ? (
+                <div className="space-y-2">
+                  <p className="text-green-800 dark:text-green-200 text-sm font-semibold flex items-center">
+                    <Star className="mr-2" size={16} />
+                    🎉 Meta diária concluída!
+                  </p>
+                  <p className="text-green-600 dark:text-green-300 text-sm">
+                    Você leu {pagesReadToday} páginas hoje. Excelente trabalho!
+                  </p>
+                  <div className="bg-green-100 dark:bg-green-800 p-2 rounded">
+                    <p className="text-green-800 dark:text-green-200 text-sm">
+                      💪 Que tal continuar lendo? Você está no ritmo certo para alcançar sua meta!
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
+                    Meta diária: {dailyGoal} páginas
+                  </p>
+                  <p className="text-blue-600 dark:text-blue-300 text-sm">
+                    Hoje você leu: {pagesReadToday} páginas
+                  </p>
+                  {pagesReadToday > 0 && pagesReadToday < dailyGoal && (
+                    <p className="text-amber-600 dark:text-amber-400 text-sm">
+                      Faltam {dailyGoal - pagesReadToday} páginas para completar a meta
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Key, Sparkles, Image } from 'lucide-react';
+import { Plus, X, Key, Sparkles, Search, ExternalLink } from 'lucide-react';
 import { useBooks } from '../hooks/useBooks';
 import { useGemini } from '../hooks/useGemini';
 import { toast } from '@/hooks/use-toast';
 import GeminiApiConfig from './GeminiApiConfig';
 import DatePicker from './DatePicker';
-import CoverSelector from './CoverSelector';
+import BookSearchDialog from './BookSearchDialog';
 
 interface AddBookFormProps {
   onClose: () => void;
@@ -30,22 +30,23 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
   const [showApiConfig, setShowApiConfig] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showCoverSelector, setShowCoverSelector] = useState(false);
+  const [showBookSearch, setShowBookSearch] = useState(false);
   const [dateError, setDateError] = useState('');
+  const [autoCompleteEnabled, setAutoCompleteEnabled] = useState(true);
   const isSelectingSuggestion = useRef(false);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
   const { addBook } = useBooks();
   const { autocompleteBook, getApiKey, loading } = useGemini();
 
   useEffect(() => {
     const searchBooks = async () => {
-      // Se estamos selecionando uma sugestão, não fazer nova pesquisa
       if (isSelectingSuggestion.current) {
         isSelectingSuggestion.current = false;
         return;
       }
 
-      if (formData.name.length >= 3) {
+      if (autoCompleteEnabled && formData.name.length >= 3) {
         const results = await autocompleteBook(formData.name);
         setSuggestions(results);
         setShowSuggestions(results.length > 0);
@@ -57,7 +58,7 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
 
     const timeoutId = setTimeout(searchBooks, 300);
     return () => clearTimeout(timeoutId);
-  }, [formData.name]);
+  }, [formData.name, autoCompleteEnabled]);
 
   // Validação de datas
   useEffect(() => {
@@ -120,11 +121,33 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
     setShowSuggestions(false);
   };
 
-  const handleCoverSelect = (url: string) => {
-    setFormData(prev => ({ ...prev, coverImageUrl: url }));
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Tab' || e.key === 'Enter') {
+      setShowSuggestions(false);
+    }
   };
 
-  const canSearchCovers = formData.name.trim() && formData.author.trim();
+  const handleBookSelect = (book: any) => {
+    setFormData(prev => ({
+      ...prev,
+      name: book.title,
+      author: book.author,
+      year: book.year?.toString() || '',
+      totalPages: book.pages?.toString() || '',
+      coverImageUrl: book.coverUrl || ''
+    }));
+  };
+
+  const openGoogleImageSearch = () => {
+    const query = `${formData.name} ${formData.author} capa livro`;
+    const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+    window.open(url, '_blank');
+    
+    toast({
+      title: "Busca aberta",
+      description: "Copie a URL da imagem escolhida e cole no campo de capa.",
+    });
+  };
 
   if (showApiConfig) {
     return <GeminiApiConfig onClose={() => setShowApiConfig(false)} />;
@@ -139,6 +162,14 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
             Adicionar Novo Livro
           </CardTitle>
           <div className="flex items-center space-x-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowBookSearch(true)}
+              title="Buscar livros online"
+            >
+              <Search size={16} />
+            </Button>
             {!getApiKey() && (
               <Button 
                 variant="ghost" 
@@ -160,9 +191,17 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
               <Label htmlFor="name">Nome do Livro *</Label>
               <div className="relative">
                 <Input
+                  ref={nameInputRef}
                   id="name"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                  onFocus={() => {
+                    if (autoCompleteEnabled && suggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
                   required
                   className={getApiKey() ? "pr-8" : ""}
                 />
@@ -171,7 +210,27 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
                 )}
               </div>
               
-              {showSuggestions && (
+              {getApiKey() && (
+                <div className="flex items-center mt-1">
+                  <input
+                    type="checkbox"
+                    id="autocomplete"
+                    checked={autoCompleteEnabled}
+                    onChange={(e) => {
+                      setAutoCompleteEnabled(e.target.checked);
+                      if (!e.target.checked) {
+                        setShowSuggestions(false);
+                      }
+                    }}
+                    className="mr-2"
+                  />
+                  <label htmlFor="autocomplete" className="text-sm text-gray-600 dark:text-gray-400">
+                    Ativar autocompletar
+                  </label>
+                </div>
+              )}
+              
+              {showSuggestions && autoCompleteEnabled && (
                 <div className="absolute z-10 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md mt-1 shadow-lg">
                   {suggestions.map((suggestion, index) => (
                     <button
@@ -248,17 +307,16 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
                   type="url"
                   value={formData.coverImageUrl}
                   onChange={(e) => handleChange('coverImageUrl', e.target.value)}
-                  placeholder="URL da capa ou use a busca IA"
+                  placeholder="Cole a URL da capa aqui"
                   className="flex-1"
                 />
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setShowCoverSelector(true)}
-                  disabled={!canSearchCovers}
-                  title={!canSearchCovers ? "Preencha nome e autor para buscar capas" : "Buscar capas com IA"}
+                  onClick={openGoogleImageSearch}
+                  title="Buscar no Google Imagens"
                 >
-                  <Image size={16} />
+                  <ExternalLink size={16} />
                 </Button>
               </div>
               {formData.coverImageUrl && (
@@ -282,13 +340,10 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
         </CardContent>
       </Card>
 
-      <CoverSelector
-        isOpen={showCoverSelector}
-        onClose={() => setShowCoverSelector(false)}
-        bookTitle={formData.name}
-        author={formData.author}
-        year={formData.year}
-        onCoverSelect={handleCoverSelect}
+      <BookSearchDialog
+        isOpen={showBookSearch}
+        onClose={() => setShowBookSearch(false)}
+        onBookSelect={handleBookSelect}
       />
     </>
   );

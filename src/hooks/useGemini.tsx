@@ -5,6 +5,7 @@ export interface BookSuggestion {
   title: string;
   author: string;
   reason: string;
+  coverUrl?: string;
 }
 
 const GEMINI_API_KEY = 'AIzaSyDLtA2PIXO3ohdX6NiJwf7dN0Y6GJ3qB1M';
@@ -17,7 +18,6 @@ export function useGemini() {
   };
 
   const setApiKey = (key: string) => {
-    // API key is now hardcoded, but we keep this function for compatibility
     localStorage.setItem('gemini_api_key', key);
   };
 
@@ -81,7 +81,6 @@ export function useGemini() {
     try {
       console.log('Buscando capas para:', title, author, year);
       
-      // Usar o Gemini para gerar URLs de busca mais específicas
       const searchQuery = `"${title}" "${author}" ${year ? year : ''} capa livro brasil português`;
       console.log('Query de busca:', searchQuery);
       
@@ -124,7 +123,6 @@ export function useGemini() {
 
       console.log('URLs encontradas:', urls);
 
-      // Se não encontrou URLs válidas, usar URLs de fallback mais específicas
       if (urls.length === 0) {
         const fallbackUrls = [
           `https://images-na.ssl-images-amazon.com/images/P/B08FHQQ4QX.01._SX500_.jpg`,
@@ -142,7 +140,6 @@ export function useGemini() {
     } catch (error) {
       console.error('Erro ao buscar capas:', error);
       
-      // URLs de fallback específicas para "Mais Esperto que o Diabo"
       const fallbackUrls = [
         `https://images-na.ssl-images-amazon.com/images/P/B08FHQQ4QX.01._SX500_.jpg`,
         `https://images.livrariasaraiva.com.br/imagemnet/imagem.aspx/?pro_id=9788542212464&qld=90&l=430&a=-1`,
@@ -172,13 +169,17 @@ export function useGemini() {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Com base no livro "${bookTitle}" de ${bookAuthor}, sugira 3 livros similares para próxima leitura. Para cada sugestão, retorne no formato:
-TÍTULO: [título do livro]
-AUTOR: [autor do livro]
-MOTIVO: [uma frase explicando por que é similar]
----
-
-Mantenha as sugestões concisas e relevantes.`
+              text: `Com base no livro "${bookTitle}" de ${bookAuthor}, sugira 3 livros similares para próxima leitura. Para cada sugestão, retorne no formato JSON:
+              [
+                {
+                  "title": "título do livro",
+                  "author": "autor do livro",
+                  "reason": "uma frase explicando por que é similar",
+                  "coverUrl": "URL_real_da_capa_se_disponível"
+                }
+              ]
+              
+              Priorize livros populares e inclua URLs reais de capas quando possível. Mantenha as sugestões concisas e relevantes.`
             }]
           }]
         })
@@ -191,20 +192,33 @@ Mantenha as sugestões concisas e relevantes.`
       const data = await response.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
-      const suggestions = text.split('---')
-        .filter((block: string) => block.trim())
-        .slice(0, 3)
-        .map((block: string) => {
-          const lines = block.trim().split('\n');
-          const title = lines.find((line: string) => line.startsWith('TÍTULO:'))?.replace('TÍTULO:', '').trim() || '';
-          const author = lines.find((line: string) => line.startsWith('AUTOR:'))?.replace('AUTOR:', '').trim() || '';
-          const reason = lines.find((line: string) => line.startsWith('MOTIVO:'))?.replace('MOTIVO:', '').trim() || '';
-          
-          return { title, author, reason };
-        })
-        .filter((suggestion: BookSuggestion) => suggestion.title && suggestion.author);
+      try {
+        const jsonMatch = text.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const suggestions = JSON.parse(jsonMatch[0]);
+          return suggestions.slice(0, 3);
+        }
+      } catch (parseError) {
+        console.error('Erro ao parsear sugestões JSON, tentando formato texto:', parseError);
+        
+        // Fallback para formato texto
+        const suggestions = text.split('---')
+          .filter((block: string) => block.trim())
+          .slice(0, 3)
+          .map((block: string) => {
+            const lines = block.trim().split('\n');
+            const title = lines.find((line: string) => line.startsWith('TÍTULO:'))?.replace('TÍTULO:', '').trim() || '';
+            const author = lines.find((line: string) => line.startsWith('AUTOR:'))?.replace('AUTOR:', '').trim() || '';
+            const reason = lines.find((line: string) => line.startsWith('MOTIVO:'))?.replace('MOTIVO:', '').trim() || '';
+            
+            return { title, author, reason };
+          })
+          .filter((suggestion: BookSuggestion) => suggestion.title && suggestion.author);
 
-      return suggestions;
+        return suggestions;
+      }
+
+      return [];
     } catch (error) {
       console.error('Erro nas sugestões:', error);
       return [];
