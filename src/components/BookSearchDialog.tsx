@@ -6,11 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search, Loader2, BookOpen, Plus } from 'lucide-react';
 import { useGemini } from '../hooks/useGemini';
+import AddBookForm from './AddBookForm';
 
 interface BookSearchDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onBookSelect: (book: any) => void;
 }
 
 interface BookResult {
@@ -22,10 +22,12 @@ interface BookResult {
   description?: string;
 }
 
-export default function BookSearchDialog({ isOpen, onClose, onBookSelect }: BookSearchDialogProps) {
+export default function BookSearchDialog({ isOpen, onClose }: BookSearchDialogProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [books, setBooks] = useState<BookResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<BookResult | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
   const { getApiKey } = useGemini();
 
   const searchBooks = async () => {
@@ -86,9 +88,34 @@ export default function BookSearchDialog({ isOpen, onClose, onBookSelect }: Book
   };
 
   const handleSelectBook = (book: BookResult) => {
-    onBookSelect(book);
+    setSelectedBook(book);
+    setShowAddForm(true);
+  };
+
+  const handleCloseAddForm = () => {
+    setShowAddForm(false);
+    setSelectedBook(null);
     onClose();
   };
+
+  if (showAddForm && selectedBook) {
+    return (
+      <Dialog open={isOpen} onOpenChange={handleCloseAddForm}>
+        <DialogContent className="max-w-md">
+          <AddBookForm 
+            onClose={handleCloseAddForm}
+            prefilledData={{
+              name: selectedBook.title,
+              author: selectedBook.author,
+              year: selectedBook.year?.toString() || '',
+              totalPages: selectedBook.pages?.toString() || '',
+              coverImageUrl: selectedBook.coverUrl || ''
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

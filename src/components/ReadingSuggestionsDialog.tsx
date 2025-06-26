@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Lightbulb, Loader2, BookOpen, ExternalLink } from 'lucide-react';
+import { Lightbulb, Loader2, BookOpen, ExternalLink, Plus } from 'lucide-react';
 import { useGemini, BookSuggestion } from '../hooks/useGemini';
-import { Book } from '../hooks/useBooks';
+import { useBooks, Book } from '../hooks/useBooks';
+import { toast } from '@/hooks/use-toast';
 
 interface ReadingSuggestionsDialogProps {
   completedBook: Book;
@@ -16,6 +17,7 @@ export default function ReadingSuggestionsDialog({ completedBook }: ReadingSugge
   const [suggestions, setSuggestions] = useState<BookSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
   const { getReadingSuggestions } = useGemini();
+  const { addBook } = useBooks();
 
   const loadSuggestions = async () => {
     setLoading(true);
@@ -39,6 +41,34 @@ export default function ReadingSuggestionsDialog({ completedBook }: ReadingSugge
     const query = `${title} ${author} livro`;
     const url = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
     window.open(url, '_blank');
+  };
+
+  const handleAddToReading = async (suggestion: BookSuggestion) => {
+    const today = new Date();
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    try {
+      await addBook({
+        name: suggestion.title,
+        author: suggestion.author,
+        totalPages: 300, // Valor padrão
+        startDate: today,
+        targetEndDate: nextMonth,
+        coverImageUrl: suggestion.coverUrl
+      });
+
+      toast({
+        title: "Livro adicionado!",
+        description: `"${suggestion.title}" foi adicionado à sua lista de leitura.`
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível adicionar o livro.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -92,15 +122,26 @@ export default function ReadingSuggestionsDialog({ completedBook }: ReadingSugge
                         <p className="text-gray-600 dark:text-gray-400 mb-2">{suggestion.author}</p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{suggestion.reason}</p>
                         
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => searchBookOnline(suggestion.title, suggestion.author)}
-                          className="flex items-center"
-                        >
-                          <ExternalLink size={14} className="mr-2" />
-                          Buscar Online
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddToReading(suggestion)}
+                            className="flex items-center"
+                          >
+                            <Plus size={14} className="mr-2" />
+                            Adicionar à Leitura
+                          </Button>
+                          
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => searchBookOnline(suggestion.title, suggestion.author)}
+                            className="flex items-center"
+                          >
+                            <ExternalLink size={14} className="mr-2" />
+                            Buscar Online
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>

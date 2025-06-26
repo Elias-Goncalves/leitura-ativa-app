@@ -1,36 +1,44 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, X, Key, Sparkles, Search, ExternalLink } from 'lucide-react';
+import { Plus, X, Key, Sparkles, Search, Image } from 'lucide-react';
 import { useBooks } from '../hooks/useBooks';
 import { useGemini } from '../hooks/useGemini';
 import { toast } from '@/hooks/use-toast';
 import GeminiApiConfig from './GeminiApiConfig';
 import DatePicker from './DatePicker';
 import BookSearchDialog from './BookSearchDialog';
+import CoverSelector from './CoverSelector';
 
 interface AddBookFormProps {
   onClose: () => void;
+  prefilledData?: {
+    name?: string;
+    author?: string;
+    year?: string;
+    totalPages?: string;
+    coverImageUrl?: string;
+  };
 }
 
-export default function AddBookForm({ onClose }: AddBookFormProps) {
+export default function AddBookForm({ onClose, prefilledData }: AddBookFormProps) {
   const [formData, setFormData] = useState({
-    name: '',
-    author: '',
-    year: '',
-    totalPages: '',
+    name: prefilledData?.name || '',
+    author: prefilledData?.author || '',
+    year: prefilledData?.year || '',
+    totalPages: prefilledData?.totalPages || '',
     startDate: new Date(),
     targetEndDate: undefined as Date | undefined,
-    coverImageUrl: ''
+    coverImageUrl: prefilledData?.coverImageUrl || ''
   });
 
   const [showApiConfig, setShowApiConfig] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showBookSearch, setShowBookSearch] = useState(false);
+  const [showCoverSelector, setShowCoverSelector] = useState(false);
   const [dateError, setDateError] = useState('');
   const [autoCompleteEnabled, setAutoCompleteEnabled] = useState(true);
   const isSelectingSuggestion = useRef(false);
@@ -127,26 +135,8 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
     }
   };
 
-  const handleBookSelect = (book: any) => {
-    setFormData(prev => ({
-      ...prev,
-      name: book.title,
-      author: book.author,
-      year: book.year?.toString() || '',
-      totalPages: book.pages?.toString() || '',
-      coverImageUrl: book.coverUrl || ''
-    }));
-  };
-
-  const openGoogleImageSearch = () => {
-    const query = `${formData.name} ${formData.author} capa livro`;
-    const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
-    window.open(url, '_blank');
-    
-    toast({
-      title: "Busca aberta",
-      description: "Copie a URL da imagem escolhida e cole no campo de capa.",
-    });
+  const handleCoverSelect = (url: string) => {
+    setFormData(prev => ({ ...prev, coverImageUrl: url }));
   };
 
   if (showApiConfig) {
@@ -313,10 +303,11 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={openGoogleImageSearch}
-                  title="Buscar no Google Imagens"
+                  onClick={() => setShowCoverSelector(true)}
+                  title="Buscar capas online"
+                  disabled={!formData.name || !formData.author}
                 >
-                  <ExternalLink size={16} />
+                  <Image size={16} />
                 </Button>
               </div>
               {formData.coverImageUrl && (
@@ -343,7 +334,15 @@ export default function AddBookForm({ onClose }: AddBookFormProps) {
       <BookSearchDialog
         isOpen={showBookSearch}
         onClose={() => setShowBookSearch(false)}
-        onBookSelect={handleBookSelect}
+      />
+
+      <CoverSelector
+        isOpen={showCoverSelector}
+        onClose={() => setShowCoverSelector(false)}
+        bookTitle={formData.name}
+        author={formData.author}
+        year={formData.year}
+        onCoverSelect={handleCoverSelect}
       />
     </>
   );
