@@ -109,16 +109,16 @@ export default function EditBookDialog({ isOpen, onClose, book }: EditBookDialog
           <div>
             <Label>Data de Início *</Label>
             <DatePicker
-              selected={formData.startDate}
-              onSelect={(date) => date && setFormData({ ...formData, startDate: date })}
+              date={formData.startDate}
+              onDateSelect={(date) => date && setFormData({ ...formData, startDate: date })}
             />
           </div>
 
           <div>
             <Label>Data Meta para Conclusão *</Label>
             <DatePicker
-              selected={formData.targetEndDate}
-              onSelect={(date) => date && setFormData({ ...formData, targetEndDate: date })}
+              date={formData.targetEndDate}
+              onDateSelect={(date) => date && setFormData({ ...formData, targetEndDate: date })}
             />
           </div>
 
