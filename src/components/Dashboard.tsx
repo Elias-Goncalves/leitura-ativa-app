@@ -44,29 +44,38 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 space-y-4 md:space-y-0">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-              <BookOpen className="mr-3" size={32} />
+            <h1 className="text-4xl font-bold text-foreground flex items-center gap-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <BookOpen className="text-primary" size={32} />
+              </div>
               Leitura Ativa
             </h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-2">
-              Bem-vindo, {currentUser?.email}!
+            <p className="text-muted-foreground mt-3 text-lg">
+              Bem-vindo, <span className="font-semibold text-foreground">{currentUser?.email}</span>!
             </p>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {activeBooks.length} livro(s) em progresso • {completedBooks.length} concluído(s)
-            </p>
+            <div className="flex items-center gap-4 mt-2 text-sm">
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 text-primary rounded-full font-medium">
+                <span className="w-2 h-2 bg-primary rounded-full"></span>
+                {activeBooks.length} em progresso
+              </span>
+              <span className="flex items-center gap-1.5 px-3 py-1 bg-secondary/10 text-secondary rounded-full font-medium">
+                <span className="w-2 h-2 bg-secondary rounded-full"></span>
+                {completedBooks.length} concluídos
+              </span>
+            </div>
           </div>
           
           <div className="flex items-center space-x-3">
             <Button onClick={toggleTheme} variant="outline" size="sm">
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </Button>
-            <Button onClick={() => setShowAddForm(true)} className="flex items-center">
-              <Plus className="mr-2" size={16} />
+            <Button onClick={() => setShowAddForm(true)} className="flex items-center shadow-md">
+              <Plus className="mr-2" size={18} />
               Novo Livro
             </Button>
             <Button onClick={handleLogout} variant="outline">
@@ -116,16 +125,18 @@ export default function Dashboard() {
             </p>
           </div>
         ) : (
-          <div className="text-center py-12">
-            <BookOpen className="mx-auto mb-4 text-gray-400" size={48} />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          <div className="text-center py-16 bg-card rounded-xl border border-border shadow-sm">
+            <div className="bg-primary/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="text-primary" size={40} />
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-2">
               Sua biblioteca está vazia
             </h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Adicione seu primeiro livro para começar a acompanhar sua leitura!
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+              Adicione seu primeiro livro para começar a acompanhar sua leitura e alcançar suas metas!
             </p>
-            <Button onClick={() => setShowAddForm(true)} className="flex items-center mx-auto">
-              <Plus className="mr-2" size={16} />
+            <Button onClick={() => setShowAddForm(true)} className="flex items-center mx-auto shadow-md" size="lg">
+              <Plus className="mr-2" size={18} />
               Adicionar Primeiro Livro
             </Button>
           </div>
@@ -134,29 +145,29 @@ export default function Dashboard() {
         {/* Statistics */}
         {books.length > 0 && (
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <div className="bg-card p-6 rounded-xl shadow-lg border border-border text-center hover:shadow-xl transition-shadow">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">
                 Total de Livros
               </h4>
-              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+              <p className="text-4xl font-bold text-primary mt-3">
                 {books.length}
               </p>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <div className="bg-card p-6 rounded-xl shadow-lg border border-border text-center hover:shadow-xl transition-shadow">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">
                 Páginas Lidas
               </h4>
-              <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+              <p className="text-4xl font-bold text-secondary mt-3">
                 {books.reduce((sum, book) => sum + book.pagesRead, 0)}
               </p>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <div className="bg-card p-6 rounded-xl shadow-lg border border-border text-center hover:shadow-xl transition-shadow">
+              <h4 className="text-sm font-medium text-muted-foreground mb-2 uppercase tracking-wide">
                 Livros Concluídos
               </h4>
-              <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+              <p className="text-4xl font-bold text-accent mt-3">
                 {completedBooks.length}
               </p>
             </div>

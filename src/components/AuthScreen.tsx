@@ -60,13 +60,18 @@ export default function AuthScreen() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
-      <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-96">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      <div className="bg-card p-8 rounded-xl shadow-lg w-full max-w-md border border-border">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center mb-4">
+            <div className="bg-primary/10 p-4 rounded-full">
+              <LogIn className="text-primary" size={40} />
+            </div>
+          </div>
+          <h2 className="text-3xl font-bold text-foreground mb-2">
             {isLoginMode ? 'Bem-vindo de Volta!' : 'Crie sua Conta'}
           </h2>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">
+          <p className="text-muted-foreground">
             {isLoginMode ? 'Acesse sua conta para continuar.' : 'Junte-se ao Leitura Ativa!'}
           </p>
         </div>
@@ -123,7 +128,9 @@ export default function AuthScreen() {
           )}
 
           {error && (
-            <p className="text-red-500 text-sm text-center">{error}</p>
+            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
           )}
 
           <Button
@@ -142,7 +149,7 @@ export default function AuthScreen() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-gray-600 dark:text-gray-300 text-sm">
+        <p className="mt-6 text-center text-muted-foreground text-sm">
           {isLoginMode ? (
             <>
               Não tem uma conta?{' '}
@@ -154,7 +161,7 @@ export default function AuthScreen() {
                   setPassword('');
                   setConfirmPassword('');
                 }}
-                className="text-blue-600 hover:underline focus:outline-none"
+                className="text-primary font-semibold hover:underline focus:outline-none transition-colors"
               >
                 Crie uma aqui!
               </button>
@@ -170,7 +177,7 @@ export default function AuthScreen() {
                   setPassword('');
                   setConfirmPassword('');
                 }}
-                className="text-blue-600 hover:underline focus:outline-none"
+                className="text-primary font-semibold hover:underline focus:outline-none transition-colors"
               >
                 Faça Login!
               </button>

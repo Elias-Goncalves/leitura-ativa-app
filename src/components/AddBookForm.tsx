@@ -194,6 +194,10 @@ export default function AddBookForm({ onClose, prefilledData }: AddBookFormProps
                   }}
                   required
                   className={getApiKey() ? "pr-8" : ""}
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
                 />
                 {getApiKey() && loading && (
                   <Sparkles className="absolute right-2 top-1/2 transform -translate-y-1/2 animate-pulse text-blue-500" size={16} />

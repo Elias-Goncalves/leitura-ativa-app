@@ -38,21 +38,37 @@ export default function CoverSelector({
     setFailedImages(new Set());
     setSelectedCover('');
     
-    // URLs genéricas de exemplo para capas de livros brasileiros
-    const sampleCovers = [
-      `https://images-na.ssl-images-amazon.com/images/P/8501110551.01.L.jpg`,
-      `https://images-na.ssl-images-amazon.com/images/P/8579802709.01.L.jpg`,
-      `https://images-na.ssl-images-amazon.com/images/P/8535930952.01.L.jpg`,
-      `https://images-na.ssl-images-amazon.com/images/P/8542212460.01.L.jpg`,
-      `https://images-na.ssl-images-amazon.com/images/P/8563321250.01.L.jpg`,
-      `https://images-na.ssl-images-amazon.com/images/P/8550801488.01.L.jpg`
-    ];
-    
-    // Simular busca
-    setTimeout(() => {
-      setCovers(sampleCovers);
+    try {
+      const searchQuery = encodeURIComponent(`${bookTitle} ${author} book cover`);
+      const googleApiKey = import.meta.env.VITE_GOOGLE_API_KEY;
+      const googleCseId = import.meta.env.VITE_GOOGLE_CSE_ID;
+      
+      if (googleApiKey && googleCseId) {
+        const response = await fetch(
+          `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCseId}&q=${searchQuery}&searchType=image&num=6`
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          const imageUrls = data.items?.map((item: any) => item.link) || [];
+          setCovers(imageUrls);
+        } else {
+          console.warn('Google API error, usando fallback');
+          setCovers([]);
+        }
+      } else {
+        // Fallback: busca simulada com URLs genéricas
+        const sampleCovers = [
+          `https://covers.openlibrary.org/b/isbn/9780000000000-L.jpg?default=false`,
+        ];
+        setCovers(sampleCovers);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar capas:', error);
+      setCovers([]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const handleSelectCover = () => {
@@ -84,9 +100,14 @@ export default function CoverSelector({
               <RefreshCw className={loading ? "animate-spin" : ""} size={16} />
             </Button>
           </DialogTitle>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Buscando por: "{bookTitle}" - {author} {year && `(${year})`}
           </p>
+          {!import.meta.env.VITE_GOOGLE_API_KEY && (
+            <div className="bg-accent/10 border border-accent/20 text-accent px-3 py-2 rounded-lg text-xs mt-2">
+              <strong>Modo Fallback:</strong> Configure VITE_GOOGLE_API_KEY e VITE_GOOGLE_CSE_ID para buscar capas reais do Google.
+            </div>
+          )}
         </DialogHeader>
 
         {loading ? (
@@ -101,8 +122,8 @@ export default function CoverSelector({
                 {covers.map((cover, index) => (
                   <Card 
                     key={`${cover}-${index}`}
-                    className={`cursor-pointer transition-all ${
-                      selectedCover === cover ? 'ring-2 ring-blue-500' : ''
+                    className={`cursor-pointer transition-all hover:scale-105 ${
+                      selectedCover === cover ? 'ring-2 ring-primary shadow-lg' : ''
                     } ${failedImages.has(cover) ? 'opacity-50' : ''}`}
                     onClick={() => !failedImages.has(cover) && setSelectedCover(cover)}
                   >
@@ -116,18 +137,19 @@ export default function CoverSelector({
                               className="w-full h-40 object-cover rounded"
                               onError={() => handleImageError(cover)}
                               crossOrigin="anonymous"
+                              loading="lazy"
                             />
                             {selectedCover === cover && (
-                              <div className="absolute top-1 right-1 bg-blue-500 text-white rounded-full p-1">
+                              <div className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-1 shadow-md">
                                 <Check size={16} />
                               </div>
                             )}
                           </div>
                         ) : (
-                          <div className="w-full h-40 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                          <div className="w-full h-40 bg-muted rounded flex items-center justify-center">
                             <div className="text-center">
-                              <ImageOff size={24} className="text-gray-400 mx-auto mb-2" />
-                              <p className="text-xs text-gray-500">Falha ao carregar</p>
+                              <ImageOff size={24} className="text-muted-foreground mx-auto mb-2" />
+                              <p className="text-xs text-muted-foreground">Falha ao carregar</p>
                             </div>
                           </div>
                         )}
@@ -138,13 +160,14 @@ export default function CoverSelector({
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-500">Nenhuma capa encontrada.</p>
-                <p className="text-sm text-gray-400 mt-2">Tente buscar novamente ou insira uma URL manualmente.</p>
+                <ImageOff size={48} className="text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">Nenhuma capa encontrada.</p>
+                <p className="text-sm text-muted-foreground mt-2">Tente buscar novamente ou insira uma URL manualmente no formulário.</p>
               </div>
             )}
 
-            <div className="flex justify-between items-center pt-4">
-              <p className="text-xs text-gray-500">
+            <div className="flex justify-between items-center pt-4 border-t border-border mt-4">
+              <p className="text-xs text-muted-foreground">
                 {covers.length > 0 && `${validCovers.length} de ${covers.length} imagens válidas`}
               </p>
               <div className="flex space-x-2">
@@ -154,6 +177,7 @@ export default function CoverSelector({
                 <Button 
                   onClick={handleSelectCover}
                   disabled={!selectedCover || failedImages.has(selectedCover)}
+                  className="shadow-md"
                 >
                   Selecionar Capa
                 </Button>
