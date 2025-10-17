@@ -1,14 +1,17 @@
 
 import React, { useState } from 'react';
-import { Mail, Lock, LogIn, UserPlus, Loader } from 'lucide-react';
+import { Mail, Lock, LogIn, UserPlus, Loader, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
 
 export default function AuthScreen() {
   const { login, signup } = useAuth();
   const [isLoginMode, setIsLoginMode] = useState(true);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -26,17 +29,41 @@ export default function AuthScreen() {
       return;
     }
 
-    if (!isLoginMode && password !== confirmPassword) {
-      setError('As senhas não coincidem.');
-      setLoading(false);
-      return;
+    if (!isLoginMode) {
+      if (!firstName || !lastName) {
+        setError('Por favor, preencha seu nome e sobrenome.');
+        setLoading(false);
+        return;
+      }
+
+      if (firstName.length < 2 || lastName.length < 2) {
+        setError('Nome e sobrenome devem ter pelo menos 2 caracteres.');
+        setLoading(false);
+        return;
+      }
+
+      if (!/^[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+$/.test(firstName) || !/^[A-Za-zÀ-ÖØ-öø-ÿ'\- ]+$/.test(lastName)) {
+        setError('Nome e sobrenome contêm caracteres inválidos.');
+        setLoading(false);
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('As senhas não coincidem.');
+        setLoading(false);
+        return;
+      }
     }
 
     try {
       if (isLoginMode) {
         await login(email, password);
       } else {
-        await signup(email, password);
+        await signup(email, password, firstName, lastName);
+        toast({
+          title: `Bem-vindo(a), ${firstName}!`,
+          description: 'Sua conta foi criada com sucesso.',
+        });
       }
     } catch (error: any) {
       let errorMessage = 'Erro na autenticação. Tente novamente.';
@@ -51,6 +78,8 @@ export default function AuthScreen() {
         errorMessage = 'Este e-mail já está em uso.';
       } else if (error.code === 'auth/weak-password') {
         errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Credenciais inválidas. Verifique seu e-mail e senha.';
       }
       
       setError(errorMessage);
@@ -76,7 +105,45 @@ export default function AuthScreen() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+          {!isLoginMode && (
+            <>
+              <div>
+                <Label htmlFor="firstName">Nome *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <Input
+                    type="text"
+                    id="firstName"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    placeholder="Seu nome"
+                    className="pl-10"
+                    autoComplete="off"
+                    required={!isLoginMode}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="lastName">Sobrenome *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                  <Input
+                    type="text"
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    placeholder="Seu sobrenome"
+                    className="pl-10"
+                    autoComplete="off"
+                    required={!isLoginMode}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           <div>
             <Label htmlFor="email">E-mail</Label>
             <div className="relative">
@@ -88,6 +155,7 @@ export default function AuthScreen() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="seu@email.com"
                 className="pl-10"
+                autoComplete="off"
                 required
               />
             </div>
@@ -157,6 +225,8 @@ export default function AuthScreen() {
                 onClick={() => {
                   setIsLoginMode(false);
                   setError('');
+                  setFirstName('');
+                  setLastName('');
                   setEmail('');
                   setPassword('');
                   setConfirmPassword('');
@@ -173,6 +243,8 @@ export default function AuthScreen() {
                 onClick={() => {
                   setIsLoginMode(true);
                   setError('');
+                  setFirstName('');
+                  setLastName('');
                   setEmail('');
                   setPassword('');
                   setConfirmPassword('');

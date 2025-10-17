@@ -44,16 +44,21 @@ export default function CoverSelector({
       const googleCseId = import.meta.env.VITE_GOOGLE_CSE_ID;
       
       if (googleApiKey && googleCseId) {
-        const response = await fetch(
-          `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCseId}&q=${searchQuery}&searchType=image&num=6`
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          const imageUrls = data.items?.map((item: any) => item.link) || [];
-          setCovers(imageUrls);
-        } else {
-          console.warn('Google API error, usando fallback');
+        try {
+          const response = await fetch(
+            `https://www.googleapis.com/customsearch/v1?key=${googleApiKey}&cx=${googleCseId}&q=${searchQuery}&searchType=image&num=6`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const imageUrls = data.items?.map((item: any) => item.link) || [];
+            setCovers(imageUrls);
+          } else {
+            console.warn('Google API error, usando fallback');
+            setCovers([]);
+          }
+        } catch (apiError) {
+          console.error('Erro na API do Google:', apiError);
           setCovers([]);
         }
       } else {
@@ -137,6 +142,7 @@ export default function CoverSelector({
                               className="w-full h-40 object-cover rounded"
                               onError={() => handleImageError(cover)}
                               crossOrigin="anonymous"
+                              referrerPolicy="no-referrer"
                               loading="lazy"
                             />
                             {selectedCover === cover && (

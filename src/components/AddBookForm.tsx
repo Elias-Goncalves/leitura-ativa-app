@@ -176,13 +176,24 @@ export default function AddBookForm({ onClose, prefilledData }: AddBookFormProps
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+            {/* Honeypot para desativar autocomplete do Chrome */}
+            <input
+              type="text"
+              name="fake_name"
+              autoComplete="new-password"
+              style={{ position: 'absolute', left: '-9999px', height: 0, width: 0, opacity: 0 }}
+              aria-hidden="true"
+              tabIndex={-1}
+            />
+            
             <div className="relative">
               <Label htmlFor="name">Nome do Livro *</Label>
               <div className="relative">
                 <Input
                   ref={nameInputRef}
                   id="name"
+                  name="bookTitle"
                   value={formData.name}
                   onChange={(e) => handleChange('name', e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -196,8 +207,8 @@ export default function AddBookForm({ onClose, prefilledData }: AddBookFormProps
                   className={getApiKey() ? "pr-8" : ""}
                   autoComplete="off"
                   autoCorrect="off"
-                  autoCapitalize="off"
-                  spellCheck="false"
+                  autoCapitalize="none"
+                  spellCheck={false}
                 />
                 {getApiKey() && loading && (
                   <Sparkles className="absolute right-2 top-1/2 transform -translate-y-1/2 animate-pulse text-blue-500" size={16} />
@@ -320,8 +331,16 @@ export default function AddBookForm({ onClose, prefilledData }: AddBookFormProps
                     src={formData.coverImageUrl}
                     alt="Preview da capa"
                     className="w-16 h-24 object-cover rounded"
+                    referrerPolicy="no-referrer"
+                    crossOrigin="anonymous"
                     onError={(e) => {
-                      e.currentTarget.style.display = 'none';
+                      const target = e.currentTarget;
+                      target.style.display = 'none';
+                      toast({
+                        title: "Erro ao carregar preview",
+                        description: "A imagem não pôde ser carregada. Tente outra URL.",
+                        variant: "destructive"
+                      });
                     }}
                   />
                 </div>
